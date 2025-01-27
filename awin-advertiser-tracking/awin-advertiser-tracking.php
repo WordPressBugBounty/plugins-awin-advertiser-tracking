@@ -4,7 +4,7 @@
  * Plugin Name: Awin - Advertiser Tracking
  * Plugin URI: https://wordpress.org/plugins/awin-advertiser-tracking
  * Description: The Awin Advertiser Tracking plugin allows for seamless integration of our core Advertiser Tracking Suite within WooCommerce.
- * Version: 1.2.1
+ * Version: 1.3.1
  * Author: awinglobal
  * Author URI: https://profiles.wordpress.org/awinglobal/
  * Text Domain:  awin-advertiser-tracking
@@ -14,7 +14,7 @@
  * License: ModifiedBSD
  */
 
-define('AWIN_ADVERTISER_TRACKING_VERSION', '1.2.1');
+define('AWIN_ADVERTISER_TRACKING_VERSION', '1.3.1');
 define('AWIN_SLUG', 'awin_advertiser_tracking');
 define('AWIN_TEXT_DOMAIN', 'awin-advertiser-tracking');
 define('AWIN_SETTINGS_KEY', 'awin_settings');
