@@ -4,7 +4,7 @@
  * Plugin Name: Awin - Advertiser Tracking
  * Plugin URI: https://wordpress.org/plugins/awin-advertiser-tracking
  * Description: The Awin Advertiser Tracking plugin allows for seamless integration of our core Advertiser Tracking Suite within WooCommerce.
- * Version: 1.3.1
+ * Version: 1.3.2
  * Author: awinglobal
  * Author URI: https://profiles.wordpress.org/awinglobal/
  * Text Domain:  awin-advertiser-tracking
@@ -14,7 +14,7 @@
  * License: ModifiedBSD
  */
 
-define('AWIN_ADVERTISER_TRACKING_VERSION', '1.3.1');
+define('AWIN_ADVERTISER_TRACKING_VERSION', '2.0.0');
 define('AWIN_SLUG', 'awin_advertiser_tracking');
 define('AWIN_TEXT_DOMAIN', 'awin-advertiser-tracking');
 define('AWIN_SETTINGS_KEY', 'awin_settings');
@@ -253,6 +253,13 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
             // the order
             $order = wc_get_order($order_id);
 
+            // check if the order has already been sent to Awin
+            $sentToAwin = get_post_meta($order_id, '_awin_conversion', true);
+
+            if ($sentToAwin) {
+                return;
+            }
+
             // Get all orders of the customer
             $customer_id = $order->get_customer_id();
 
@@ -330,6 +337,9 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
 
             // s2s
             awin_perform_server_to_server_call($awc, $channel, $order, $advertiserId, $voucher, $customer_acquisition);
+
+            // add sentToAwin flag to order in order to avoid duplicate calls
+            update_post_meta($order_id, '_awin_conversion', true);
         }
     }
 
@@ -489,6 +499,7 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
 
         // Define column headers for the feed
         $headers = [
+            'deep_link',
             'basket_link', 'ean', 'isbn', 'product_GTIN', 'size_stock_amount', 'category_name', 'category_id',
             'image_url', 'product_id', 'product_name', 'price',
             'alternate_image', 'base_price', 'average_rating', 'base_price_amount', 'base_price_text',
@@ -578,7 +589,10 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
             $specifications_string = ! empty($specifications) ? implode(', ', $specifications) : '';
             $cart_url              = wc_get_cart_url();
             // echo wc_get_cart_url();
+            $deep_link =  get_permalink($product->get_id());
+
             $row = [
+                'deep_link'                        => $deep_link,
                 'basket_link'                      => $cart_url,
                 'ean'                              => $product->get_global_unique_id() ?? '',
                 'isbn'                             => $product->get_global_unique_id() ?? '',
