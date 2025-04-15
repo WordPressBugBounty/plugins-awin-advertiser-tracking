@@ -8,8 +8,8 @@ Author URI:        https://profiles.wordpress.org/awinglobal/
 Author:            awinglobal
 Requires at least: 3.5
 Tested up to:      6.7.1
-Stable tag:        1.3.2
-Version:           1.3.2
+Stable tag:        2.0.0
+Version:           2.0.0
 Requires PHP:      7.3
 
 
@@ -50,7 +50,7 @@ For the purpose of attributing sales and commissions to publishers, Awin will pr
 
 == Changelog ==
 
-= 1.3.1 =
+= 2.0.0 =
 * Added aw_deep_link field.
 * Fixed issue in checkout where calls were firing multiple times
 
