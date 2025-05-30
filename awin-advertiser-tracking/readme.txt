@@ -8,8 +8,8 @@ Author URI:        https://profiles.wordpress.org/awinglobal/
 Author:            awinglobal
 Requires at least: 3.5
 Tested up to:      6.7.1
-Stable tag:        2.0.0
-Version:           2.0.0
+Stable tag:        2.0.1
+Version:           2.0.1
 Requires PHP:      7.3
 
 
@@ -49,6 +49,10 @@ For the purpose of attributing sales and commissions to publishers, Awin will pr
 6. Done.
 
 == Changelog ==
+
+= 2.0.1 =
+* Added nonce to feed generation to prevent CSRF attacks.
+* Added rawurlencode to basket item name
 
 = 2.0.0 =
 * Added aw_deep_link field.
