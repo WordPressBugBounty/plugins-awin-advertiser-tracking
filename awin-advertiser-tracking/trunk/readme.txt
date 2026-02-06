@@ -7,12 +7,12 @@ Tags:              awin, affiliate, zanox, affiliate window, advertiser, trackin
 Author URI:        https://profiles.wordpress.org/awinglobal/
 Author:            awinglobal
 Requires at least: 3.5
-Tested up to:      6.4
-Stable tag:        1.2.0
-Version:           1.2.0
+Tested up to:      6.8.2
+Stable tag:        2.0.5
+Version:           2.0.5
 Requires PHP:      7.3
- 
- 
+
+
 == Description ==
 Awin is a global affiliate network with over 200,000 contributing publishers and 29,500 advertisers, connecting customers with brands in over 180 countries around the globe. The Awin Tracking extension allows for seamless integration of our core Advertiser Tracking Suite within WooCommerce.
 
@@ -31,27 +31,61 @@ To use this extension you must have an Awin advertiser account, please contact o
 **Voucher Code Tracking** Voucher/Coupon code tracking is an effective way for advertisers to monitor the vouchers used in a transaction. The data is clearly highlighted to advertisers through the Awin interface and you can choose to accept/decline commission based on the usage of non-compliant voucher codes.
 </li>
 <li style="margin: 0px; padding: 0px;">
-**MultiCurrency Support** The currency used by your customer at checkout will be automatically handled and converted to your invoicing currency on the Awin platform. 
+**MultiCurrency Support** The currency used by your customer at checkout will be automatically handled and converted to your invoicing currency on the Awin platform.
 </li>
 <li style="margin: 0px; padding: 0px;">
 **Product Level Tracking (PLT)** PLT enables an advertiser to produce more in-depth reporting where the performance of individual products can easily be measured. Monitor the effectiveness of different product promotions and their impact on consumers' buying behaviour in the affiliate channel.
 </li>
 
-= Privacy = 
+= Privacy =
 For the purpose of attributing sales and commissions to publishers, Awin will process checkout information including the order reference. This data will be sent and processed on the dwin1.com and awin1.com domains. Any queries regarding the processing of this data can be directed to your dedicated integration contact. Please also see our [privacy policy.](https://www.awin.com/gb/legal/privacy-policy-gb)
 
 == Installation ==
 1. Install the plugin
 2. Go to settings -> Awin Advertiser Tracking
 3. Set your Awin Advertiser ID (Provided by your Integration/Account Contact)
-4. Done
- 
+4. Set the Awin Authorization Bearer token ("OAuth2 Token" in Awin dashboard). You can find this token in the API credentials section of your Awin dashboard.
+5. Set the Approval Delay (Days). This is used to check if the order status is complete and whether its completed state is greater than the specified number of days.
+6. Done.
+
 == Changelog ==
+
+= 2.0.5 =
+* Enhanced Custom Parameter (p6) with dynamic dropdown selection
+* Added 11 predefined tracking options: customer data (billing/shipping country, state, city), payment method, shipping method, device type, and customer ID
+* Improved admin UI with conditional input field for custom values
+
+= 2.0.4 =
+* Enhanced UI text with more detailed explanations and examples
+
+= 2.0.3 =
+* Added support for configurabl custom parameter (p6)
+* New admin setting field to configure custom parameter value
+* Custom parameter sent in Master Tag, conversion pixel, and server-to-server tracking
+* Optional parameter - backward compatible with existing installations
+* Follows Awin Custom Parameters specification
+
+= 2.0.2 =
+* Tested with WordPress 6.8.2
+
+= 2.0.1 =
+* Added nonce to feed generation to prevent CSRF attacks.
+* Added rawurlencode to basket item name
+
+= 2.0.0 =
+* Added aw_deep_link field.
+* Fixed issue in checkout where calls were firing multiple times
+
+= 1.3.1 =
+* Added cron job for generating product feed.
+* Fixed bug with Fall-back conversion pixel not firing due to lazy loading of images
+* Improved cookie handling
+* Tested with WordPress 6.7.1
 
 = 1.2.0 =
 * Added customerAcquisition parameter to conversion tags
-* Fixed bug with Fall-back conversion pixel not firing due to lazy loading of images
-* Improved cookie handling 
+* Implemented Approve, decline, amend batch transactions for a given advertiser
+* Improved Code Quality.
 * Tested with WordPress 6.4
 
 = 1.1.5 =

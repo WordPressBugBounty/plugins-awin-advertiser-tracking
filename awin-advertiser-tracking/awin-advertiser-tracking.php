@@ -4,7 +4,7 @@
  * Plugin Name: Awin - Advertiser Tracking
  * Plugin URI: https://wordpress.org/plugins/awin-advertiser-tracking
  * Description: The Awin Advertiser Tracking plugin allows for seamless integration of our core Advertiser Tracking Suite within WooCommerce.
- * Version: 2.0.2
+ * Version: 2.0.5
  * Author: awinglobal
  * Author URI: https://profiles.wordpress.org/awinglobal/
  * Text Domain:  awin-advertiser-tracking
@@ -14,7 +14,7 @@
  * License: ModifiedBSD
  */
 
-define('AWIN_ADVERTISER_TRACKING_VERSION', '2.0.2');
+define('AWIN_ADVERTISER_TRACKING_VERSION', '2.0.5');
 define('AWIN_SLUG', 'awin_advertiser_tracking');
 define('AWIN_TEXT_DOMAIN', 'awin-advertiser-tracking');
 define('AWIN_SETTINGS_KEY', 'awin_settings');
@@ -26,6 +26,7 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
 
     add_action('admin_menu', 'awin_add_admin_menu');
     add_action('admin_init', 'awin_settings_init');
+    add_action('admin_enqueue_scripts', 'awin_enqueue_admin_scripts');
     add_action('wp_enqueue_scripts', 'awin_enqueue_journey_tag_script');
     add_action('init', 'awin_process_url_params');
     add_action('woocommerce_thankyou', 'awin_thank_you', 10);
@@ -61,6 +62,30 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
             false,
             basename(dirname(__FILE__)) . '/lang/'
         );
+    }
+
+    function awin_enqueue_admin_scripts($hook)
+    {
+        // Only enqueue on our plugin settings page
+        if ($hook !== 'settings_page_' . AWIN_SLUG) {
+            return;
+        }
+        
+        // Inline JavaScript for xtype dropdown handling
+        $inline_script = "
+        jQuery(document).ready(function($) {
+            $('#awin_xtype').on('change', function() {
+                if (this.value == 'user_defined') {
+                    $('#awin_xtype_custom').attr('type', 'text').next('.description').show();
+                } else {
+                    $('#awin_xtype_custom').attr('type', 'hidden').next('.description').hide();
+                }
+            });
+        });
+        ";
+        
+        wp_enqueue_script('jquery');
+        wp_add_inline_script('jquery', $inline_script);
     }
 
     function awin_add_admin_menu()
@@ -104,6 +129,24 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
             'awin-plugin-page',
             'awin_plugin-page_section'
         );
+
+        // Add dropdown field for xtype parameter
+        add_settings_field(
+            'awin_xtype',
+            __('Custom parameter (Optional, Applies to All Transactions)', AWIN_TEXT_DOMAIN),
+            'awin_xtype_render',
+            'awin-plugin-page',
+            'awin_plugin-page_section'
+        );
+
+        // Add hidden field for custom xtype value
+        add_settings_field(
+            'awin_xtype_custom',
+            '',
+            'awin_xtype_custom_render',
+            'awin-plugin-page',
+            'awin_plugin-page_section'
+        );
     }
 
     function awin_advertiser_id_render()
@@ -138,6 +181,56 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
         value="<?php echo esc_attr($approval_days); ?>"
         min="1" placeholder="30">
 <p class="description">Enter the number of days after which orders in completed status will be approved. Default is 30 days.</p>
+<?php
+    }
+
+        function awin_xtype_render()
+        {
+            $options = get_option(AWIN_SETTINGS_KEY);
+            $xtype   = isset($options['awin_xtype']) ? sanitize_text_field($options['awin_xtype']) : '';
+        ?>
+<select id="awin_xtype" name="awin_settings[awin_xtype]">
+    <option value="">Select an optional Custom parameter</option>
+    <optgroup label="Custom">
+        <option value="user_defined" <?php selected($xtype, 'user_defined'); ?>>Select to enter your own value</option>
+    </optgroup>
+    <optgroup label="Customer">
+        <option value="customer_id" <?php selected($xtype, 'customer_id'); ?>>ID</option>
+        <option value="customer_device_type" <?php selected($xtype, 'customer_device_type'); ?>>Device Type (mobile or desktop)</option>
+        <option value="customer_billing_country_code" <?php selected($xtype, 'customer_billing_country_code'); ?>>Billing Country Code</option>
+        <option value="customer_billing_state_code" <?php selected($xtype, 'customer_billing_state_code'); ?>>Billing State Code</option>
+        <option value="customer_billing_city_code" <?php selected($xtype, 'customer_billing_city_code'); ?>>Billing City Name</option>
+        <option value="customer_shipping_country_code" <?php selected($xtype, 'customer_shipping_country_code'); ?>>Shipping Country Code</option>
+        <option value="customer_shipping_state_code" <?php selected($xtype, 'customer_shipping_state_code'); ?>>Shipping State Code</option>
+        <option value="customer_shipping_city_code" <?php selected($xtype, 'customer_shipping_city_code'); ?>>Shipping City Name</option>
+    </optgroup>
+    <optgroup label="Payment">
+        <option value="payment_type" <?php selected($xtype, 'payment_type'); ?>>Method (cheque, PayPal, Cash on Delivery, etc.)</option>
+        <option value="payment_shipping" <?php selected($xtype, 'payment_shipping'); ?>>Shipping Method (UPS, FedEx, Flat Rate etc.)</option>
+    </optgroup>
+</select>
+<p class="description">
+    This optional field allows you to send a consistent identifier with every tracked sale. This is useful for distinguishing transactions by store region, brand, or other business-specific grouping. The value entered here will be included in all transactions and available in Awin reports.
+</p>
+<?php
+    }
+
+    function awin_xtype_custom_render()
+    {
+        $options      = get_option(AWIN_SETTINGS_KEY);
+        $xtype        = isset($options['awin_xtype']) ? sanitize_text_field($options['awin_xtype']) : '';
+        $xtype_custom = isset($options['awin_xtype_custom']) ? sanitize_text_field($options['awin_xtype_custom']) : '';
+        $input_type   = ($xtype == 'user_defined') ? 'text' : 'hidden';
+        ?>
+<input type="<?php echo $input_type; ?>" 
+       id="awin_xtype_custom" 
+       name="awin_settings[awin_xtype_custom]"
+       value="<?php echo esc_attr($xtype_custom); ?>"
+       class="regular-text"
+       placeholder="Enter your custom value">
+<p class="description" style="display: <?php echo ($xtype == 'user_defined') ? 'block' : 'none'; ?>;">
+    Pass a fixed tracking value with every transaction processed through your WooCommerce store.
+</p>
 <?php
     }
 
@@ -254,6 +347,82 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
             return $options[AWIN_SETTINGS_ADVERTISER_ID_KEY];
         }
 
+        function awin_get_xtype_value($order)
+        {
+            $options      = get_option(AWIN_SETTINGS_KEY);
+            $xtype_option = isset($options['awin_xtype']) ? sanitize_text_field($options['awin_xtype']) : '';
+            $xtype_custom = isset($options['awin_xtype_custom']) ? sanitize_text_field($options['awin_xtype_custom']) : '';
+            
+            if (empty($xtype_option)) {
+                return '';
+            }
+            
+            $xtype_value = '';
+            
+            switch ($xtype_option) {
+                case 'customer_billing_country_code':
+                    $xtype_value = $order->get_billing_country();
+                    break;
+                
+                case 'customer_billing_state_code':
+                    $xtype_value = $order->get_billing_state();
+                    break;
+                
+                case 'customer_billing_city_code':
+                    $xtype_value = $order->get_billing_city();
+                    break;
+                
+                case 'customer_shipping_country_code':
+                    $xtype_value = $order->get_shipping_country();
+                    break;
+                
+                case 'customer_shipping_state_code':
+                    $xtype_value = $order->get_shipping_state();
+                    break;
+                
+                case 'customer_shipping_city_code':
+                    $xtype_value = $order->get_shipping_city();
+                    break;
+                
+                case 'customer_id':
+                    $xtype_value = $order->get_user_id();
+                    break;
+                
+                case 'customer_device_type':
+                    $xtype_value = wp_is_mobile() ? 'mobile' : 'desktop';
+                    break;
+                
+                case 'payment_type':
+                    $xtype_value = $order->get_payment_method_title();
+                    break;
+                
+                case 'payment_shipping':
+                    // Get shipping method - try multiple approaches for compatibility
+                    $shipping_methods = $order->get_items('shipping');
+                    
+                    if (!empty($shipping_methods)) {
+                        $shipping_method = array_shift($shipping_methods);
+                        $xtype_value = $shipping_method->get_method_title();
+                    } else {
+                        // Fallback: try to get from order meta
+                        $shipping_method = $order->get_shipping_method();
+                        if (!empty($shipping_method)) {
+                            $xtype_value = $shipping_method;
+                        }
+                    }
+                    break;
+                
+                case 'user_defined':
+                    $xtype_value = $xtype_custom;
+                    break;
+                
+                default:
+                    $xtype_value = '';
+            }
+            
+            return $xtype_value;
+        }
+
         function awin_thank_you($order_id)
         {
             $advertiserId = awin_get_advertiser_id_from_settings();
@@ -291,6 +460,13 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
                 $channel = isset($_COOKIE[AWIN_SOURCE_COOKIE_NAME]) ? $_COOKIE[AWIN_SOURCE_COOKIE_NAME] : "aw";
 
                 $imgUrl = 'https://www.awin1.com/sread.img?tt=ns&tv=2&merchant=' . $advertiserId . '&amount=' . $totalPrice . '&ch=' . $channel . '&cr=' . $currency . '&ref=' . $order_number . '&parts=DEFAULT:' . $totalPrice . '&customeracquisition=' . $customer_acquisition . '&p1=wooCommercePlugin_' . AWIN_ADVERTISER_TRACKING_VERSION;
+                
+                // Add xtype parameter if configured
+                $xtype = awin_get_xtype_value($order);
+                if (strlen($xtype) > 0) {
+                    $imgUrl .= '&p6=' . urlencode($xtype);
+                }
+                
                 if (strlen($voucher) > 0) {
                     $imgUrl .= '&vc=' . $voucher;
                 }
@@ -321,6 +497,26 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
                 echo "\n" . '</textarea>';
                 echo "\n" . '</form>';
 
+                // Build custom parameters array for Master Tag
+                $customParams = [];
+                $customParams[] = 'wooCommercePlugin_' . AWIN_ADVERTISER_TRACKING_VERSION; // p1
+                $customParams[] = ''; // p2 (reserved)
+                $customParams[] = ''; // p3 (reserved)
+                $customParams[] = ''; // p4 (reserved)
+                $customParams[] = ''; // p5 (reserved)
+                
+                // Add xtype as p6 if configured (URL-encoded for use in tracking URLs)
+                $xtype = awin_get_xtype_value($order);
+                $encoded_xtype = !empty($xtype) ? urlencode($xtype) : '';
+                $customParams[] = $encoded_xtype; // p6
+                
+                // Build JSON array for custom parameters, filtering out trailing empty values
+                $customParamsFiltered = $customParams;
+                while (count($customParamsFiltered) > 0 && end($customParamsFiltered) === '') {
+                    array_pop($customParamsFiltered);
+                }
+                $customParamsJson = json_encode($customParamsFiltered);
+
                 $masterTag = '//<![CDATA[' . "\n";
                 $masterTag .= 'var AWIN = {};' . "\n";
                 $masterTag .= 'AWIN.Tracking = {};' . "\n";
@@ -332,7 +528,7 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
                 $masterTag .= 'AWIN.Tracking.Sale.orderRef = "' . $order_number . '";' . "\n";
                 $masterTag .= 'AWIN.Tracking.Sale.parts = "DEFAULT:' . $totalPrice . '";' . "\n";
                 $masterTag .= 'AWIN.Tracking.Sale.voucher = "' . $voucher . '";' . "\n";
-                $masterTag .= 'AWIN.Tracking.Sale.custom = ["wooCommercePlugin_' . AWIN_ADVERTISER_TRACKING_VERSION . '"];' . "\n";
+                $masterTag .= 'AWIN.Tracking.Sale.custom = ' . $customParamsJson . ';' . "\n";
                 $masterTag .= 'AWIN.Tracking.Sale.customerAcquisition = "' . $customer_acquisition . '";' . "\n";
                 $masterTag .= '//]]>' . "\n";
 
@@ -375,11 +571,18 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
                 "p1"                  => "wooCommercePlugin_" . AWIN_ADVERTISER_TRACKING_VERSION,
             ];
 
+            // Add xtype parameter if configured
+            $xtype = awin_get_xtype_value($order);
+            if (strlen($xtype) > 0) {
+                $query["p6"] = $xtype;
+            }
+
             if (strlen($voucher) > 0) {
                 $query["vc"] = $voucher;
             }
 
-            wp_remote_get("https://www.awin1.com/sread.php?" . http_build_query($query));
+            $final_url = "https://www.awin1.com/sread.php?" . http_build_query($query);
+            wp_remote_get($final_url);
         }
 
         // Function to execute daily task

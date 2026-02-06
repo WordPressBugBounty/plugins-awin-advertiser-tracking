@@ -8,8 +8,8 @@ Author URI:        https://profiles.wordpress.org/awinglobal/
 Author:            awinglobal
 Requires at least: 3.5
 Tested up to:      6.8.2
-Stable tag:        2.0.2
-Version:           2.0.2
+Stable tag:        2.0.4
+Version:           2.0.4
 Requires PHP:      7.3
 
 
@@ -49,6 +49,21 @@ For the purpose of attributing sales and commissions to publishers, Awin will pr
 6. Done.
 
 == Changelog ==
+
+= 2.0.5 =
+* Enhanced Custom Parameter (p6) with dynamic dropdown selection
+* Added 11 predefined tracking options: customer data (billing/shipping country, state, city), payment method, shipping method, device type, and customer ID
+* Improved admin UI with conditional input field for custom values
+
+= 2.0.4 =
+* Enhanced UI text with more detailed explanations and examples
+
+= 2.0.3 =
+* Added support for configurabl custom parameter (p6)
+* New admin setting field to configure custom parameter value
+* Custom parameter sent in Master Tag, conversion pixel, and server-to-server tracking
+* Optional parameter - backward compatible with existing installations
+* Follows Awin Custom Parameters specification
 
 = 2.0.2 =
 * Tested with WordPress 6.8.2
