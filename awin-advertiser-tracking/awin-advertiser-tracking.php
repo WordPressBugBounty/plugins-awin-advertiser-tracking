@@ -588,27 +588,44 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
         // Function to execute daily task
         function approve_orders_daily()
         {
+            error_log('AWIN: approve_orders_daily invoked');
+
             $options       = get_option(AWIN_SETTINGS_KEY);
+
+            // replace value below with 0 for local testing without waiting
             $approval_days = isset($options['awin_approval_days']) ? (int) $options['awin_approval_days'] : 30;
 
             // Calculate the date threshold (current date minus the approval days)
             $threshold_date = date('Y-m-d', strtotime('-' . $approval_days . ' days'));
 
+            $lookback_date = date('Y-m-d', strtotime($threshold_date . ' - ' . ($approval_days < 30 ? 30 : $approval_days ). ' days'));
+
             $args = [
-                'status'        => 'completed',
-                'type'          => 'shop_order',
-                'date_modified' => '>=' . $threshold_date,
-                'limit'         => -1,
+                'status'     => 'completed',
+                'type'       => 'shop_order',
+                'date_completed' =>  $lookback_date . "..." . $threshold_date ,
+                'limit'      => -1,
+                'meta_query' => [
+                    [
+                        'key'     => '_awin_sent_completed',
+                        'compare' => 'NOT EXISTS',
+                    ],
+                ],
             ];
 
             $orders = wc_get_orders($args);
 
+            error_log('AWIN API: approve_orders_daily found ' . count($orders) . ' orders, searching between ' . $lookback_date . " and " . $threshold_date);
+
             foreach ($orders as $order) {
-                $job_id              = get_post_meta($order->get_id(), '_awin_job_id', true);
                 $awin_sent_completed = get_post_meta($order->get_id(), '_awin_sent_completed', true);
 
                 if (! empty($awin_sent_completed)) {
                     continue; // Skip this iteration and move to the next order
+                }
+
+                if($order->get_total_refunded() > 0) {
+                    continue; // Skip this iteration the order was amended before
                 }
 
                 $transaction_date = $order->get_date_completed()->date('Y-m-d\TH:i:s');
@@ -639,13 +656,15 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
                 ]);
 
                 if (is_wp_error($response)) {
-                    error_log('AWIN API: Failed to send approval request for order ' . $order->get_id());
+                    error_log('AWIN API ERROR: Failed to send request for order ' . $order->get_id() . " -- " . $response->get_error_message());
                 } else {
                     $response_body = json_decode(wp_remote_retrieve_body($response), true);
 
                     if (isset($response_body['jobId'])) {
                         update_post_meta($order->get_id(), '_awin_job_id', sanitize_text_field($response_body['jobId']));
                         update_post_meta($order->get_id(), '_awin_sent_completed', true);
+                    } else {
+                        error_log('AWIN API: Approval Request successful but no Job ID returned for order ' . $order->get_id() . " -- " . json_encode($response_body));
                     }
                 }
             }
@@ -687,7 +706,7 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
         function schedule_approve_orders_cron()
         {
             if (! wp_next_scheduled('awin_approve_orders_cron_hook')) {
-                wp_schedule_event(strtotime('00:00:00'), 'daily', 'awin_approve_orders_cron_hook');
+                wp_schedule_event(strtotime('00:00:00'), 'daily', 'awin_approve_orders_cron_hook');                
             }
         }
 
@@ -959,14 +978,14 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
 
             // Handle API response
             if (is_wp_error($response)) {
-                error_log('AWIN API: Failed to send request for order ' . $order_id);
+                error_log('AWIN API ERROR: Failed to send request for order ' . $order_id . " -- " . $response->get_error_message());
             } else {
                 $response_body = json_decode(wp_remote_retrieve_body($response), true);
 
                 if (isset($response_body['jobId'])) {
                     update_post_meta($order_id, '_awin_job_id', sanitize_text_field($response_body['jobId']));
                 } else {
-                    error_log('AWIN API: Request successful but no Job ID returned for order ' . $order_id);
+                    error_log('AWIN API ERROR: Decline Request successful but no Job ID returned for order ' . $order_id . " -- " . json_encode($response_body));
                 }
             }
         }
@@ -985,7 +1004,7 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
             $timezone     = wp_timezone_string();
 
             if (empty($advertiserId) || empty($bearer_token)) {
-                error_log('Advertiser ID or Bearer token is missing.');
+                error_log('AWIN WARNING:Advertiser ID or Bearer token is missing.');
                 return;
             }
 
@@ -1022,14 +1041,15 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
 
             // Handle the response from the API (logging, error checking, etc.)
             if (is_wp_error($response)) {
-                $error_message = $response->get_error_message();
+                error_log('AWIN API ERROR: Failed to send request for order ' . $order_id . " -- " . $response->get_error_message());
             } else {
                 $response_body = json_decode(wp_remote_retrieve_body($response), true);
 
                 if (isset($response_body['jobId'])) {
                     update_post_meta($order->get_id(), '_awin_job_id', sanitize_text_field($response_body['jobId']));
+                } else {
+                    error_log('AWIN API ERROR: Amend Request successful but no Job ID returned for order ' . $order_id . " -- " . json_encode($response_body));
                 }
             }
         }
-
 }
