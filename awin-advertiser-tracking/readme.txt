@@ -8,8 +8,8 @@ Author URI:        https://profiles.wordpress.org/awinglobal/
 Author:            awinglobal
 Requires at least: 3.5
 Tested up to:      6.8.2
-Stable tag:        2.0.6
-Version:           2.0.6
+Stable tag:        2.0.7
+Version:           2.0.7
 Requires PHP:      7.3
 
 
@@ -49,6 +49,9 @@ For the purpose of attributing sales and commissions to publishers, Awin will pr
 6. Done.
 
 == Changelog ==
+
+= 2.0.7 =
+* Fix version number mismatch 
 
 = 2.0.6 = 
 * Fixed and improved the order query used for Awin validation 
